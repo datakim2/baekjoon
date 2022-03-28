@@ -1,157 +1,124 @@
 package baekjoon13911;
 
-import java.awt.Point;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 
 class Node implements Comparable<Node> {
-	int end;
-	long weight;
+	long e;
+	long w;
 
-	public Node(int end, long weight) {
+	public Node(long e, long w) {
 		super();
-		this.end = end;
-		this.weight = weight;
+		this.e = e;
+		this.w = w;
 	}
 
 	@Override
 	public int compareTo(Node o) {
-		if (this.weight == o.weight)
-			return 0;
-		else if (this.weight > o.weight)
+		if (this.w > o.w)
 			return 1;
+		else if (this.w == o.w)
+			return 0;
 		else
 			return -1;
 	}
 }
 
-class Point implements Comparable<Point> {
-	int kind;
-	int x;
-	long y;
-
-	public Point(int kind, int x, long y) {
-		this.kind = kind;
-		this.x = x;
-		this.y = y;
-	}
-
-	@Override
-	public int compareTo(Point o) {
-		return this.x - o.x;
-	}
-}
-
 public class Main {
 	static int V, E;
-	static long[] dist;
-	static ArrayList<Integer> smNum1 = new ArrayList<>();
-	static ArrayList<Integer> smNum2 = new ArrayList<>();
-	static ArrayList<Point> list = new ArrayList<>();
-	static LinkedList<Node>[] Graph;
-	final static Long INF = 30000000000L;
+	static ArrayList<Node>[] graph;
+	static final long INF = 3000000000L;
+	static long distMin = INF;
+	static PriorityQueue<Node> pq = new PriorityQueue<>();
 
-	public static void main(String[] args) throws NumberFormatException, IOException {
+	public static void main(String[] args) throws IOException {
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
 		String[] s = br.readLine().split(" ");
-		V = Integer.parseInt(s[0]);
-		E = Integer.parseInt(s[1]);
 
-		Graph = new LinkedList[V + 1];
-		dist = new long[V + 1];
+		V = stoi(s[0]);
+		E = stoi(s[1]);
+
+		graph = new ArrayList[V + 1];
 
 		for (int i = 1; i <= V; i++) {
-			Graph[i] = new LinkedList<>();
+			graph[i] = new ArrayList<>();
 		}
 
-		for (int i = 1; i <= E; i++) {
+		for (int i = 0; i < E; i++) {
 			String[] s2 = br.readLine().split(" ");
-			int sNum = Integer.parseInt(s2[0]);
-			int eNum = Integer.parseInt(s2[1]);
-			int wNum = Integer.parseInt(s2[2]);
-			Graph[sNum].add(new Node(eNum, wNum));
-			Graph[eNum].add(new Node(sNum, wNum));
+			int sNum = stoi(s2[0]);
+			int eNum = stoi(s2[1]);
+			int wNum = stoi(s2[2]);
+			graph[sNum].add(new Node(eNum, wNum));
+			graph[eNum].add(new Node(sNum, wNum));
 		}
-
 		String[] s3 = br.readLine().split(" ");
-		int t1 = Integer.parseInt(s3[0]); // 스타벅스 개수
-		int m1 = Integer.parseInt(s3[1]); // 스타벅스 제한거리
-
-		String[] s5 = br.readLine().split(" ");
-		for (int i = 0; i < t1; i++) {
-			smNum1.add(Integer.parseInt(s5[i]));
-		}
-
+		int MacNum = stoi(s3[0]);
+		int MacK = stoi(s3[1]);
+		long[] Mac = new long[MacNum];
 		String[] s4 = br.readLine().split(" ");
-		int t2 = Integer.parseInt(s4[0]); // 맥도날드 개수
-		int m2 = Integer.parseInt(s4[1]); // 맥도날드 제한거리
-
+		for (int i = 0; i < MacNum; i++) {
+			Mac[i] = stoi(s4[i]);
+		}
+		String[] s5 = br.readLine().split(" ");
+		int starNum = stoi(s5[0]);
+		int starK = stoi(s5[1]);
+		long[] star = new long[starNum];
 		String[] s6 = br.readLine().split(" ");
-		for (int i = 0; i < t2; i++) {
-			smNum2.add(Integer.parseInt(s6[i]));
+		for (int i = 0; i < starNum; i++) {
+			star[i] = stoi(s6[i]);
 		}
 
-		for (int i = 0; i < smNum1.size(); i++) {
-			bfs(smNum1.get(i));
-			for (int j = 1; j <= V; j++) {
-				if (dist[j] <= m1 && dist[j] != 0) {
-					list.add(new Point(0, j, dist[j]));
-				}
+		long[] distMac = new long[V + 1];
+		long[] distStar = new long[V + 1];
+		Arrays.fill(distMac, INF);
+		Arrays.fill(distStar, INF);
+		
+		for(int i=0; i<MacNum; i++) {
+			distMac[(int) Mac[i]] = 0;
+			pq.add(new Node(Mac[i], 0));
+		}
+		
+		djikstra(distMac);
+		
+		for(int i=0; i<starNum; i++) {
+			distStar[(int) star[i]] = 0;
+			pq.add(new Node(star[i], 0));
+		}
+		djikstra(distStar);
+		
+		for(int i=1; i<=V; i++) {
+			if(distMac[i]>0 && distMac[i]<=MacK && distStar[i]>0 && distStar[i]<=starK) {
+				distMin = Math.min(distMin, distMac[i]+distStar[i]);
 			}
 		}
-
-		for (int i = 0; i < smNum2.size(); i++) {
-			bfs(smNum2.get(i));
-			for (int j = 1; j <= V; j++) {
-				if (dist[j] <= m2 && dist[j] != 0) {
-					list.add(new Point(1, j, dist[j]));
-				}
-			}
+		if(distMin==INF) {
+			System.out.println(-1);
 		}
-
-		Collections.sort(list);
-
-		for (int i = 0; i < list.size(); i++) {
-			for(int j=1; j<=V; j++) {
-			if(list.get(i).x==j) {
-			}
-			System.out.printf("%d %d %d\n", list.get(i).kind, list.get(i).x, list.get(i).y);
-		}
-		}
-
+		else {
+		System.out.println(distMin);
+	}
 	}
 
-	public static void bfs(int start) {
-		PriorityQueue<Node> pq = new PriorityQueue<>();
-		pq.add(new Node(start, 0));
-		boolean[] visited = new boolean[V + 1];
-		Arrays.fill(dist, INF);
-		dist[start] = 0;
-
+	public static void djikstra(long[] dist) {
 		while (!pq.isEmpty()) {
 			Node curNode = pq.poll();
-			int cur = curNode.end;
-
-			if (dist[cur] < curNode.weight)
-				continue;
-
-			if (visited[cur])
-				continue;
-
-			visited[cur] = true;
-
-			for (Node n : Graph[cur]) {
-				if (dist[n.end] > dist[cur] + n.weight) {
-					dist[n.end] = dist[cur] + n.weight;
-					pq.add(new Node(n.end, dist[n.end]));
+			long cur = curNode.e;
+				
+			for(int i=0; i<graph[(int)curNode.e].size(); i++) {
+					Node next =  graph[(int)cur].get(i);
+				if (dist[(int) next.e] > next.w + curNode.w) {
+					dist[(int) next.e] = next.w + curNode.w;
+					pq.add(new Node(next.e, dist[(int) next.e]));
 				}
-			}
 		}
+		}
+	}
+
+	public static int stoi(String s) {
+		return Integer.parseInt(s);
 	}
 
 }
